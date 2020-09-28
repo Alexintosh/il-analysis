@@ -2,7 +2,9 @@ import {request, gql} from 'graphql-request'
 
 async function main() {
     const endpoint = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2'
-    const userAddress = '0x001b71fad769b3cd47fd4c9849c704fdfabf6096'
+    let userAddress = '0x001b71fad769b3cd47fd4c9849c704fdfabf6096'
+    // The keys are lowercase on thegraph.com
+    userAddress = userAddress.toLocaleLowerCase()
 
     const query = gql`
         {
@@ -57,11 +59,21 @@ function getDollarPrice(pair: any): [number, number] {
     return [t0usd, t1usd]
 }
 
+
+/**
+ * Returns impermanent loss in absolute numbers
+ * (e.g. 0.8 return value means that you will lose
+ * 80 % of your value compared to hodl)
+ * @param t0OldPrice
+ * @param t1OldPrice
+ * @param t0NewPrice
+ * @param t1NewPrice
+ */
 function computeImpLoss(t0OldPrice: number, t1OldPrice: number, t0NewPrice: number, t1NewPrice: number): number {
     const t0PriceChangeCoeff = t0NewPrice / t0OldPrice
     const t1PriceChangeCoeff = t1NewPrice / t1OldPrice
     const priceChangeRatio = t0PriceChangeCoeff / t1PriceChangeCoeff
-    return 2 * Math.sqrt(priceChangeRatio) / (1 + priceChangeRatio) - 1
+    return Math.abs(2 * Math.sqrt(priceChangeRatio) / (1 + priceChangeRatio) - 1)
 }
 
 main().catch((error) => console.error(error))
