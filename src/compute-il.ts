@@ -21,9 +21,15 @@ async function main() {
                     reserveUSD
                     reserve0
                     reserve1
+                    totalSupply
                 }
                 token0PriceUSD
                 token1PriceUSD
+                reserveUSD
+                reserve0
+                reserve1
+                liquidityTokenBalance
+                liquidityTokenTotalSupply
             }
         }
     `
@@ -35,10 +41,12 @@ async function main() {
         let t1OldPrice: number = snapshot['token1PriceUSD']
         let [t0NewPrice, t1NewPrice] = getDollarPrice(pair)
         let impLoss = computeImpLoss(t0OldPrice, t1OldPrice, t0NewPrice, t1NewPrice)
+        let [fees0, fees1, feesUSD] = computeFees(snapshot, t0NewPrice, t1NewPrice)
         console.log(`${pair['token0']['symbol']}/${pair['token1']['symbol']}`)
         console.log(`Old prices: ${t0OldPrice}, ${t1OldPrice}   Ratio: ${t0OldPrice / t1OldPrice}`)
         console.log(`New prices: ${t0NewPrice}, ${t1NewPrice}   Ratio: ${t0NewPrice / t1NewPrice}`)
         console.log(`Impermanent loss: ${impLoss}`)
+        console.log(`Fees: ${fees0} ${pair['token0']['symbol']}, ${fees1} ${pair['token1']['symbol']} / ${feesUSD} USD`)
         console.log(`----------------------------`)
     }
 }
@@ -59,7 +67,6 @@ function getDollarPrice(pair: any): [number, number] {
     return [t0usd, t1usd]
 }
 
-
 /**
  * Returns impermanent loss in absolute numbers
  * (e.g. 0.8 return value means that you will lose
@@ -74,6 +81,27 @@ function computeImpLoss(t0OldPrice: number, t1OldPrice: number, t0NewPrice: numb
     const t1PriceChangeCoeff = t1NewPrice / t1OldPrice
     const priceChangeRatio = t0PriceChangeCoeff / t1PriceChangeCoeff
     return Math.abs(2 * Math.sqrt(priceChangeRatio) / (1 + priceChangeRatio) - 1)
+}
+
+function computeFees(snapshot: any, t0NewPrice: number, t1NewPrice: number): [number, number, number] {
+    // user liquidity token balance is constant for a given LP snapshot
+    const liquidityTokenBalance: number = snapshot['liquidityTokenBalance']
+
+    const liquidityTokenTotalSupplyOld: number = snapshot['liquidityTokenTotalSupply']
+    const reserve0Old: number = snapshot['reserve0']
+    const reserve1Old: number = snapshot['reserve1']
+    const poolShareOld = liquidityTokenBalance / liquidityTokenTotalSupplyOld
+
+    const liquidityTokenTotalSupplyNew: number = snapshot['pair']['totalSupply']
+    const reserve0New: number = snapshot['pair']['reserve0']
+    const reserve1New: number = snapshot['pair']['reserve1']
+    const poolShareNew = liquidityTokenBalance / liquidityTokenTotalSupplyNew
+
+    const fees0 = poolShareNew * reserve0New - poolShareOld * reserve0Old
+    const fees1 = poolShareNew * reserve1New - poolShareOld * reserve1Old
+    const feesUSD = fees0 * t0NewPrice + fees1 * t1NewPrice
+
+    return [fees0, fees1, feesUSD]
 }
 
 main().catch((error) => console.error(error))
