@@ -105,9 +105,8 @@ export function getMetricsForPositionWindow(positionT0: Position, positionT1: Po
 
 async function main() {
     const endpoint = 'https://api.thegraph.com/subgraphs/name/uniswap/uniswap-v2'
-    // let userAddress = '0x001b71fad769b3cd47fd4c9849c704fdfabf6096'
     // The keys are lowercase on thegraph.com
-    const user = '0xC143cB83B3fb5F367d2272b5814ba7BAb2C9D70D'.toLocaleLowerCase();
+    let userAddress = '0x001b71fad769b3cd47fd4c9849c704fdfabf6096'
 
     const query = gql`
         {
